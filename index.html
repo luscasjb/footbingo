@@ -27,7 +27,6 @@
         }
         .progress-bar-transition { transition: width 1s linear; }
         
-        /* Esconde barra de rolagem no carrossel de datas */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -49,7 +48,7 @@
     <!-- TELA INICIAL (MENU) -->
     <div id="start-screen" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center mt-6">
         
-        <!-- Carrossel de Datas (CORRIGIDO: adicionado p-2 e -mx-2 para evitar corte) -->
+        <!-- Carrossel de Datas -->
         <div class="mb-6 text-left">
             <h3 class="text-sm font-semibold text-slate-400 mb-1">Escolha o Desafio:</h3>
             <div id="date-carousel" class="flex gap-2 overflow-x-auto hide-scrollbar p-2 -mx-2">
@@ -78,8 +77,6 @@
 
     <!-- MAIN GAME CONTAINER -->
     <main id="game-screen" class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start hidden">
-        
-        <!-- Left Panel: Current Player & Controls -->
         <section class="lg:col-span-1 flex flex-col gap-4 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden">
             <div id="timer-container" class="absolute top-0 left-0 w-full h-1.5 bg-slate-700 hidden">
                 <div id="timer-bar" class="h-full bg-emerald-400 progress-bar-transition w-full"></div>
@@ -104,7 +101,6 @@
             <div id="message-box" class="mt-2 text-center text-sm font-bold min-h-[48px] text-red-400 transition-opacity opacity-0 flex items-center justify-center"></div>
         </section>
 
-        <!-- Right Panel: Bingo Board -->
         <section class="lg:col-span-2">
             <div id="bingo-board" class="grid grid-cols-3 gap-2 sm:gap-4 aspect-square"></div>
         </section>
@@ -137,61 +133,107 @@
     <script>
         // 1. DATA LAYER
         const playersData = [
+            { name: "Arthur", nationality: "Brasil", teams: ["Grêmio", "Barcelona", "Juventus", "Liverpool", "Fiorentina"], topscorer: [], champion: ["Libertadores", "La Liga", "Copa America"], manager: ["Felipão", "Klopp"], teammate: ["Cristiano Ronaldo", "Messi", "Neymar"], ballonDor: false },
             { name: "Douglas Costa", nationality: "Brasil", teams: ["Grêmio", "Bayern", "Shaktar", "Juventus", "Fluminense"], topscorer: [], champion: ["Serie A"], manager: ["Guardiola", "Felipão"], teammate: ["Cristiano Ronaldo"], ballonDor: false },
+            { name: "Jardel", nationality: "Brasil", teams: ["Vasco", "Grêmio", "Porto", "Galatasaray", "Sporting"], topscorer: ["Libertadores", "Brasileiro"], champion: ["Libertadores"], manager: ["Felipão"], teammate: ["Cristiano Ronaldo"], ballonDor: false },
+            { name: "Alexandre Pato", nationality: "Brasil", teams: ["Inter", "Milan", "Corinthians", "São Paulo", "Chelsea"], topscorer: [], champion: ["Serie A"], manager: [], teammate: [], ballonDor: false },
+            { name: "Nilmar", nationality: "Brasil", teams: ["Corinthians", "Inter", "Santos", "Lyon"], topscorer: ["Libertadores"], champion: ["Brasileiro"], manager: [], teammate: [], ballonDor: false },
+            { name: "Diego Ribas", nationality: "Brasil", teams: ["Santos", "Porto", "Juventus", "Atl Madrid", "Flamengo"], topscorer: [], champion: ["Brasileiro", "Libertadores", "Copa America", "La Liga", "Liga Europa"], manager: ["Luxemburgo"], teammate: [], ballonDor: false },
             { name: "Michael Ballack", nationality: "Alemão", teams: ["Bayer", "Bayern", "Chelsea"], topscorer: [], champion: ["Premier"], manager: ["Mourinho"], teammate: ["Anelka", "Klose", "Robben"], ballonDor: false },
             { name: "Robben", nationality: "Holandês", teams: ["PSV", "Chelsea", "Real Madrid", "Bayern"], topscorer: [], champion: ["Premier", "La Liga", "Champions"], manager: ["Guardiola", "Mourinho"], teammate: ["Ballack", "Anelka", "Ribery"], ballonDor: false },
             { name: "Ribery", nationality: "Francês", teams: ["Marselha", "Bayern", "Fiorentina"], topscorer: [], champion: ["Champions"], manager: ["Guardiola"], teammate: ["Robben", "Klose"], ballonDor: false },
             { name: "Klose", nationality: "Alemão", teams: ["Bayern", "Lazio"], topscorer: ["Copa do Mundo"], champion: ["Copa do Mundo"], manager: [], teammate: ["Ribery", "Robben"], ballonDor: false },
             { name: "Roberto Carlos", nationality: "Brasil", teams: ["Atl Mineiro", "Palmeiras", "Real Madrid", "Internazionale", "Corinthians"], topscorer: [], champion: ["Copa do Mundo", "Brasileiro", "La Liga", "Champions", "Copa América"], manager: ["Luxemburgo"], teammate: [], ballonDor: false },
-            { name: "Ronaldo Fenômeno", nationality: "Brasil", teams: ["Cruzeiro", "PSV", "Barcelona", "Inter", "Real Madrid", "Milan", "Corinthians"], topscorer: ["Copa do Mundo", "La Liga"], champion: ["Copa do Mundo", "La Liga", "Copa América"], manager: [], teammate: ["Romário", "Roberto Carlos"], ballonDor: true },
+            { name: "Ronaldo Fenômeno", nationality: "Brasil", teams: ["Cruzeiro", "PSV", "Barcelona", "Internazionale", "Real Madrid", "Milan", "Corinthians"], topscorer: ["Copa do Mundo", "La Liga"], champion: ["Copa do Mundo", "La Liga", "Copa América"], manager: [], teammate: ["Romário", "Roberto Carlos"], ballonDor: true },
+            { name: "Casemiro", nationality: "Brasil", teams: ["São Paulo", "Real Madrid", "Porto", "Man United"], topscorer: [], champion: ["La Liga", "Champions", "Copa America"], manager: ["Ancelotti"], teammate: ["Cristiano Ronaldo", "Neymar"], ballonDor: false },
             { name: "Honda", nationality: "Japonês", teams: ["Milan", "Botafogo"], topscorer: [], champion: [], manager: [], teammate: [], ballonDor: false },
             { name: "Immobile", nationality: "Itália", teams: ["Juventus", "Lazio", "Borussia"], topscorer: ["Serie A"], champion: ["Eurocopa"], manager: [], teammate: [], ballonDor: false },
-            { name: "Tiquinho", nationality: "Brasil", teams: ["Porto", "Botafogo"], topscorer: [], champion: [], manager: [], teammate: [], ballonDor: false },
+            { name: "Tiquinho Soares", nationality: "Brasil", teams: ["Porto", "Botafogo"], topscorer: [], champion: [], manager: [], teammate: [], ballonDor: false },
             { name: "Luis Suarez", nationality: "Uruguai", teams: ["Ajax", "Liverpool", "Barcelona", "Atl Madrid", "Gremio"], topscorer: ["La Liga", "Premier"], champion: ["Copa America", "Champions", "La Liga"], manager: [], teammate: ["Messi", "Neymar"], ballonDor: false },
             { name: "Salah", nationality: "Egito", teams: ["Chelsea", "Roma", "Liverpool"], topscorer: ["Premier"], champion: ["Premier", "Champions"], manager: ["Klopp", "Mourinho"], teammate: ["Alisson", "Firmino"], ballonDor: false },
-            { name: "Julio Cesar", nationality: "Brasil", teams: ["Flamengo", "Inter", "Benfica", "QPR"], topscorer: [], champion: ["Champions", "Copa America", "Serie A"], manager: ["Mourinho", "Felipão"], teammate: ["Lúcio", "Maicon"], ballonDor: false },
+            { name: "Julio Cesar", nationality: "Brasil", teams: ["Flamengo", "Internazionale", "Benfica", "QPR"], topscorer: [], champion: ["Champions", "Copa America", "Serie A"], manager: ["Mourinho", "Felipão"], teammate: ["Lúcio", "Maicon"], ballonDor: false },
             { name: "Dida", nationality: "Brasil", teams: ["Cruzeiro", "Milan", "Corinthians", "Gremio", "Inter"], topscorer: [], champion: ["Serie A", "Champions", "Copa do Mundo", "Brasileiro", "Libertadores", "Copa América"], manager: ["Luxemburgo", "Felipão"], teammate: ["Ronaldo Fenômeno", "Kaká"], ballonDor: false },
-            { name: "Godin", nationality: "Uruguai", teams: ["Atl Madrid", "Internazionale", "Atl Mineiro"], topscorer: [], champion: ["Copa America", "La Liga", "Liga Europa"], manager: ["Simeone"], teammate: ["Suarez"], ballonDor: false },
+            { name: "Godín", nationality: "Uruguai", teams: ["Atl Madrid", "Internazionale", "Atl Mineiro", "Boca"], topscorer: [], champion: ["Copa America", "La Liga", "Liga Europa"], manager: ["Simeone"], teammate: ["Suarez"], ballonDor: false },
+            { name: "Cavani", nationality: "Uruguai", teams: ["Napoli", "PSG", "Man United", "Boca"], topscorer: ["Serie A"], champion: ["Copa America"], manager: ["Ancelotti"], teammate: ["Suarez", "Neymar"], ballonDor: false },
+            { name: "Alexis Sanchez", nationality: "Chile", teams: ["River", "Barcelona", "Arsenal", "Man United", "Internazionale", "Marselha", "Sevilla"], topscorer: [], champion: ["Copa America", "La Liga", "Serie A"], manager: ["Guardiola"], teammate: ["Messi"], ballonDor: false },
+            { name: "Arturo Vidal", nationality: "Chile", teams: ["Bayer", "Juventus", "Bayern", "Barcelona", "Internazionale", "Flamengo"], topscorer: [], champion: ["Copa America", "Serie A", "La Liga", "Libertadores"], manager: ["Guardiola"], teammate: ["Messi"], ballonDor: false },
+            { name: "Eduardo Vargas", nationality: "Chile", teams: ["Napoli", "Grêmio", "Atl Mineiro"], topscorer: [], champion: ["Copa America", "Brasileiro"], manager: ["Felipão", "Luxemburgo"], teammate: [], ballonDor: false },
+            { name: "Aranguiz", nationality: "Chile", teams: ["Bayer", "Inter"], topscorer: [], champion: ["Copa America"], manager: [], teammate: [], ballonDor: false },
+            { name: "Radamel Falcão", nationality: "Colômbia", teams: ["River", "Porto", "Atl Madrid", "Monaco", "Man United", "Chelsea"], topscorer: [], champion: ["Liga Europa"], manager: [], teammate: [], ballonDor: false },
+            { name: "Chicharito", nationality: "México", teams: ["Chivas", "Man United", "Real Madrid", "Bayer", "West Ham", "Sevilla"], topscorer: [], champion: ["Premier", "Liga Europa"], manager: ["Ferguson"], teammate: ["Cristiano Ronaldo"], ballonDor: false },
             { name: "Pepe Reina", nationality: "Espanha", teams: ["Barcelona", "Liverpool", "Napoli", "Bayern", "Milan", "Aston Villa", "Lazio"], topscorer: [], champion: ["Eurocopa", "Copa do Mundo"], manager: ["Benítez", "Guardiola"], teammate: ["Robben", "Ribery"], ballonDor: false },
+            { name: "Fernando Torres", nationality: "Espanha", teams: ["Atl Madrid", "Liverpool", "Chelsea", "Milan"], topscorer: [], champion: ["Champions", "Eurocopa", "Copa do Mundo", "Liga Europa"], manager: [], teammate: [], ballonDor: false },
             { name: "Gago", nationality: "Argentina", teams: ["Boca", "Real Madrid", "Roma"], topscorer: [], champion: ["La Liga"], manager: [], teammate: ["Messi"], ballonDor: false },
+            { name: "Tevez", nationality: "Argentina", teams: ["Boca", "Corinthians", "West Ham", "Man United", "Man City", "Juventus"], topscorer: ["Premier"], champion: ["Libertadores", "Brasileiro", "Premier", "Champions", "Serie A"], manager: ["Ferguson"], teammate: ["Cristiano Ronaldo", "Buffon", "Messi"], ballonDor: false },
             { name: "De Rossi", nationality: "Itália", teams: ["Roma", "Boca"], topscorer: [], champion: ["Copa do Mundo"], manager: [], teammate: ["Totti"], ballonDor: false },
-            { name: "Lúcio", nationality: "Brasil", teams: ["Inter", "Bayer", "Bayern", "Juventus", "São Paulo", "Palmeiras"], topscorer: [], champion: ["Copa do Mundo", "Champions", "Serie A"], manager: ["Felipão", "Mourinho"], teammate: ["Ronaldo Fenômeno", "Julio Cesar"], ballonDor: false },
+            { name: "Lúcio", nationality: "Brasil", teams: ["Inter", "Bayer", "Bayern", "Internazionale", "Juventus", "São Paulo", "Palmeiras"], topscorer: [], champion: ["Copa do Mundo", "Champions", "Serie A"], manager: ["Felipão", "Mourinho"], teammate: ["Ronaldo Fenômeno"], ballonDor: false },
             { name: "Juan", nationality: "Brasil", teams: ["Flamengo", "Bayer", "Roma", "Inter"], topscorer: [], champion: ["Brasileiro", "Copa América"], manager: ["Felipão"], teammate: ["Ronaldo Fenômeno", "Lúcio"], ballonDor: false },
             { name: "Kaká", nationality: "Brasil", teams: ["São Paulo", "Milan", "Real Madrid"], topscorer: ["Champions"], champion: ["Serie A", "La Liga", "Champions", "Copa do Mundo"], manager: ["Felipão", "Mourinho"], teammate: ["Ronaldo Fenômeno", "Cristiano Ronaldo"], ballonDor: true },
-            { name: "Mac Allister", nationality: "Argentina", teams: ["Boca", "Liverpool", "Brighton"], topscorer: [], champion: ["Copa do Mundo"], manager: ["Klopp"], teammate: ["Messi", "Salah"], ballonDor: false },
-            { name: "Maxwell", nationality: "Brasil", teams: ["Cruzeiro", "Ajax", "Inter", "PSG", "Barcelona"], topscorer: [], champion: ["Serie A", "Champions", "La Liga"], manager: ["Guardiola", "Mourinho"], teammate: ["Messi", "Ibrahimovic"], ballonDor: false },
+            { name: "Mac Allister", nationality: "Argentina", teams: ["Boca", "Brighton", "Liverpool"], topscorer: [], champion: ["Copa do Mundo", "Premier"], manager: ["Klopp"], teammate: ["Messi", "Salah"], ballonDor: false },
+            { name: "Maxwell", nationality: "Brasil", teams: ["Cruzeiro", "Ajax", "Internazionale", "PSG", "Barcelona"], topscorer: [], champion: ["Serie A", "Champions", "La Liga"], manager: ["Guardiola", "Mourinho"], teammate: ["Messi", "Ibrahimovic"], ballonDor: false },
             { name: "Bergwijn", nationality: "Holanda", teams: ["PSV", "Tottenham", "Ajax"], topscorer: [], champion: [], manager: ["Mourinho"], teammate: [], ballonDor: false },
+            { name: "Gervinho", nationality: "Costa do Marfim", teams: ["Lille", "Arsenal", "Roma"], topscorer: [], champion: [], manager: ["Wenger"], teammate: [], ballonDor: false },
             { name: "Lugano", nationality: "Uruguai", teams: ["São Paulo", "PSG", "Fenerbahçe"], topscorer: [], champion: ["Libertadores", "Copa America"], manager: [], teammate: ["Suarez", "Ceni"], ballonDor: false },
+            { name: "Diego Forlán", nationality: "Uruguai", teams: ["Man United", "Atl Madrid", "Internazionale", "Inter"], topscorer: ["Copa do Mundo", "La Liga"], champion: ["Copa America"], manager: ["Ferguson"], teammate: ["Suarez"], ballonDor: false },           
+            { name: "Dybala", nationality: "Argentina", teams: ["Juventus", "Roma"], topscorer: [], champion: ["Serie A", "Copa do Mundo"], manager: ["Mourinho"], teammate: ["Messi", "Cristiano Ronaldo", "Buffon"], ballonDor: false },           
+            { name: "Leandro Paredes", nationality: "Argentina", teams: ["Boca", "Roma", "PSG", "Juventus"], topscorer: [], champion: ["Copa America", "Copa do Mundo"], manager: ["Mourinho"], teammate: ["Messi", "Neymar"], ballonDor: false },           
+            { name: "Marchesín", nationality: "Argentina", teams: ["Porto", "Grêmio", "Boca"], topscorer: [], champion: ["Copa America"], manager: [], teammate: [], ballonDor: false },           
             { name: "Messi", nationality: "Argentina", teams: ["Barcelona", "PSG", "Inter Miami"], topscorer: ["La Liga", "Champions"], champion: ["Copa do Mundo", "Champions", "La Liga"], manager: ["Guardiola"], teammate: ["Suarez", "Neymar"], ballonDor: true },
-            { name: "Cristiano Ronaldo", nationality: "Portugal", teams: ["Sporting", "Man United", "Real Madrid", "Juventus", "Al Nassr"], topscorer: ["Champions", "Premier", "La Liga"], champion: ["Eurocopa", "Champions", "Premier", "La Liga"], manager: ["Mourinho", "Felipão"], teammate: ["Kaká", "Pepe"], ballonDor: true },
+            { name: "Cristiano Ronaldo", nationality: "Portugal", teams: ["Sporting", "Man United", "Real Madrid", "Juventus", "Al Nassr"], topscorer: ["Champions", "Premier", "La Liga"], champion: ["Eurocopa", "Champions", "Premier", "La Liga"], manager: ["Ferguson", "Mourinho", "Felipão", "Ancelotti"], teammate: ["Kaká", "Buffon"], ballonDor: true },
+            { name: "Deco", nationality: "Portugal", teams: ["Corinthians", "Porto", "Barcelona", "Chelsea", "Fluminense"], topscorer: [], champion: ["Champions", "La Liga", "Premier", "Brasileiro"], manager: ["Mourinho", "Felipão"], teammate: ["Messi"], ballonDor: false },           
             { name: "Neymar", nationality: "Brasil", teams: ["Santos", "Barcelona", "PSG", "Al Hilal"], topscorer: ["Champions", "Libertadores"], champion: ["Champions", "La Liga", "Libertadores"], manager: ["Felipão"], teammate: ["Messi", "Suarez", "Mbappé"], ballonDor: false },
-            { name: "Ibrahimovic", nationality: "Suécia", teams: ["Ajax", "Juventus", "Inter", "Barcelona", "Milan", "PSG", "Man United"], topscorer: ["Serie A"], champion: ["Serie A", "La Liga"], manager: ["Mourinho", "Guardiola"], teammate: ["Maxwell", "Messi"], ballonDor: false },
+            { name: "Ibrahimovic", nationality: "Suécia", teams: ["Ajax", "Juventus", "Internazionale", "Barcelona", "Milan", "PSG", "Man United"], topscorer: ["Serie A"], champion: ["Serie A", "La Liga"], manager: ["Mourinho", "Guardiola"], teammate: ["Messi"], ballonDor: false },
             { name: "Alisson", nationality: "Brasil", teams: ["Internacional", "Roma", "Liverpool"], topscorer: [], champion: ["Champions", "Premier", "Copa America"], manager: ["Klopp"], teammate: ["Salah", "Neymar"], ballonDor: false }
         ];
 
         const criteriaPool = [
             { type: "teams", value: "Real Madrid", label: "Jogou no Real Madrid" },
             { type: "teams", value: "Barcelona", label: "Jogou no Barcelona" },
+            { type: "teams", value: "Atl Madrid", label: "Jogou no Atlético Madrid" },
             { type: "teams", value: "Bayern", label: "Jogou no Bayern" },
+            { type: "teams", value: "Bayer", label: "Jogou no Leverkusen" },
+            { type: "teams", value: "Chelsea", label: "Jogou no Chelsea" },
             { type: "teams", value: "Liverpool", label: "Jogou no Liverpool" },
+            { type: "teams", value: "Man United", label: "Jogou no Manchester United" },
             { type: "teams", value: "Milan", label: "Jogou no Milan" },
-            { type: "teams", value: "Inter", label: "Jogou na Internazionale" },
+            { type: "teams", value: "Internazionale", label: "Jogou na Internazionale" },
             { type: "teams", value: "Juventus", label: "Jogou na Juventus" },
+            { type: "teams", value: "Roma", label: "Jogou na Roma" },
+            { type: "teams", value: "PSG", label: "Jogou no PSG" },
+            { type: "teams", value: "Ajax", label: "Jogou no Ajax" },
+            { type: "teams", value: "Porto", label: "Jogou no Porto" },
             { type: "teams", value: "Boca", label: "Jogou no Boca Juniors" },
+            { type: "teams", value: "Cruzeiro", label: "Jogou no Cruzeiro" },
+            { type: "teams", value: "Corinthians", label: "Jogou no Corinthians" },
+            { type: "teams", value: "Flamengo", label: "Jogou no Flamengo" },
+            { type: "teams", value: "Grêmio", label: "Jogou no Grêmio" },
+            { type: "teams", value: "Inter", label: "Jogou no Internacional" },
+            { type: "teams", value: "São Paulo", label: "Jogou no São Paulo" },
             { type: "nationality", value: "Brasil", label: "Nacionalidade: Brasil" },
             { type: "nationality", value: "Argentina", label: "Nacionalidade: Argentina" },
+            { type: "nationality", value: "Uruguai", label: "Nacionalidade: Uruguai" },
+            { type: "nationality", value: "Chile", label: "Nacionalidade: Chile" },
             { type: "champion", value: "Copa do Mundo", label: "Campeão do Mundo" },
+            { type: "champion", value: "Copa America", label: "Campeão da Copa América" },
             { type: "champion", value: "Champions", label: "Campeão da Champions" },
             { type: "champion", value: "Premier", label: "Campeão da Premier League" },
             { type: "champion", value: "La Liga", label: "Campeão da La Liga" },
+            { type: "champion", value: "Serie A", label: "Campeão da Serie A" },
+            { type: "champion", value: "Libertadores", label: "Campeão da Libertadores" },
+            { type: "champion", value: "Brasileiro", label: "Campeão do Brasileirão" },
             { type: "topscorer", value: "La Liga", label: "Artilheiro da La Liga" },
+            { type: "topscorer", value: "Premier", label: "Artilheiro da Premier League" },
+            { type: "topscorer", value: "Serie A", label: "Artilheiro da Serie A" },
+            { type: "topscorer", value: "Champions", label: "Artilheiro da Champions" },
             { type: "topscorer", value: "Copa do Mundo", label: "Artilheiro da Copa do Mundo" },
             { type: "manager", value: "Mourinho", label: "Treinado por Mourinho" },
             { type: "manager", value: "Guardiola", label: "Treinado por Guardiola" },
             { type: "manager", value: "Felipão", label: "Treinado por Felipão" },
             { type: "manager", value: "Klopp", label: "Treinado por Klopp" },
+            { type: "teammate", value: "Cristiano Ronaldo", label: "Jogou com Cristiano Ronaldo" },
             { type: "teammate", value: "Messi", label: "Jogou com Messi" },
-            { type: "teammate", value: "Ronaldo Fenômeno", label: "Jogou com Ronaldo (Fenômeno)" },
+            { type: "teammate", value: "Neymar", label: "Jogou com Neymar" },
+            { type: "teammate", value: "Ronaldo Fenômeno", label: "Jogou com Ronaldo Fenômeno" },
             { type: "ballonDor", value: true, label: "Já foi Melhor do Mundo" }
         ];
 
@@ -251,9 +293,7 @@
                 
                 btn.innerHTML = `
                     <span class="text-xs uppercase tracking-wider mb-1">${dayLabel}</span>
-                    <span class="text-lg">
-                        ${isCompleted ? '✅' : '📅'}
-                    </span>
+                    <span class="text-lg">${isCompleted ? '✅' : '📅'}</span>
                 `;
                 
                 carousel.appendChild(btn);
@@ -347,9 +387,43 @@
             checkEndGame();
         }
 
+        // LÓGICA DE LIMITES NA CARTELA
         function initBoard() {
-            const shuffledCriteria = seededShuffle([...criteriaPool], currentChallengeDate + "-board").slice(0, 9);
-            gameState.board = shuffledCriteria.map(criteria => ({ ...criteria, filledBy: null }));
+            const MAX_LIMITS = {
+                teams: 4,
+                nationality: 2,
+                champion: 2,
+                topscorer: 2,
+                manager: 2,
+                teammate: 2,
+                ballonDor: 9
+            };
+
+            // Contadores de quantas vezes cada tipo já apareceu
+            const typeCounts = {
+                teams: 0, nationality: 0, champion: 0, topscorer: 0, manager: 0, teammate: 0, ballonDor: 0
+            };
+
+            const fullShuffledPool = seededShuffle([...criteriaPool], currentChallengeDate + "-board");
+            
+            const selectedCriteria = [];
+
+            // Passa item a item verificando se o limite já estourou
+            for (const criteria of fullShuffledPool) {
+                if (selectedCriteria.length >= 9) break; // Para quando tiver 9
+
+                const type = criteria.type;
+                const currentCount = typeCounts[type] || 0;
+                const limit = MAX_LIMITS[type] || 9;
+
+                // Se ainda couber na categoria, adiciona na cartela
+                if (currentCount < limit) {
+                    selectedCriteria.push(criteria);
+                    typeCounts[type] = currentCount + 1;
+                }
+            }
+
+            gameState.board = selectedCriteria.map(criteria => ({ ...criteria, filledBy: null }));
             renderBoard();
         }
 

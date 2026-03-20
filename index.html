@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootBingo - Desafio Diário</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .bingo-cell { transition: all 0.2s ease-in-out; }
+        .bingo-cell:hover:not(.filled) {
+            transform: scale(1.02);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .progress-bar-transition { transition: width 1s linear; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-6 px-4 sm:px-8">
+
+    <!-- Header -->
+    <header class="text-center w-full max-w-4xl flex justify-between items-center mb-6">
+        <div class="text-left">
+            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">FootBingo</h1>
+            <p id="header-date" class="text-slate-400 text-xs font-semibold uppercase tracking-widest mt-1"></p>
+        </div>
+        <button onclick="openHistory()" class="bg-slate-700 hover:bg-slate-600 text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Meu Histórico
+        </button>
+    </header>
+
+    <!-- TELA INICIAL (MENU) -->
+    <div id="start-screen" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center mt-10">
+        <h2 class="text-2xl font-bold mb-2">Desafio Diário</h2>
+        <p class="text-slate-400 text-sm mb-6">A cartela de hoje é a mesma para todos. Escolha sua dificuldade:</p>
+        
+        <div class="flex flex-col gap-4">
+            <button onclick="initGame(false)" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-xl transition-colors text-left border border-slate-600 hover:border-slate-400 flex flex-col">
+                <span class="text-lg">Modo Clássico</span>
+                <span class="text-xs text-slate-400 font-normal mt-1">Sem limite de tempo por jogador.</span>
+            </button>
+            <button onclick="initGame(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl transition-colors text-left border border-emerald-500 hover:border-emerald-400 flex flex-col">
+                <span class="text-lg flex justify-between w-full">Modo Extremo <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
+                <span class="text-xs text-emerald-200 font-normal mt-1">30 segundos por jogador.</span>
+            </button>
+        </div>
+        
+        <div class="mt-6 text-xs text-amber-400 bg-amber-900/20 p-3 rounded-lg border border-amber-900/50">
+            <strong>Regra de Ouro:</strong> Se você tentar encaixar um jogador na característica errada, você perde ele <strong>E o próximo</strong> da fila!
+        </div>
+    </div>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main id="game-screen" class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start hidden">
+        
+        <!-- Left Panel: Current Player & Controls -->
+        <section class="lg:col-span-1 flex flex-col gap-4 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden">
+            
+            <!-- Timer Bar -->
+            <div id="timer-container" class="absolute top-0 left-0 w-full h-1.5 bg-slate-700 hidden">
+                <div id="timer-bar" class="h-full bg-emerald-400 progress-bar-transition w-full"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-sm font-semibold text-slate-400 mt-2">
+                <span>Jogadores Restantes</span>
+                <span id="players-count" class="bg-slate-700 px-3 py-1 rounded-full text-emerald-400">30</span>
+            </div>
+            
+            <div id="player-card" class="bg-slate-700 rounded-xl p-6 text-center shadow-inner my-2 min-h-[160px] flex flex-col justify-center">
+                <p class="text-sm text-slate-400 uppercase tracking-wider mb-1">Jogador Atual</p>
+                <h2 id="current-player-name" class="text-3xl font-bold text-white mb-2">Carregando...</h2>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="skipPlayer()" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-3 px-4 rounded-xl transition-colors">
+                    Pular (Descartar)
+                </button>
+            </div>
+            
+            <div id="message-box" class="mt-2 text-center text-sm font-bold min-h-[48px] text-red-400 transition-opacity opacity-0 flex items-center justify-center">
+                <!-- Mensagens -->
+            </div>
+        </section>
+
+        <!-- Right Panel: Bingo Board -->
+        <section class="lg:col-span-2">
+            <div id="bingo-board" class="grid grid-cols-3 gap-2 sm:gap-4 aspect-square">
+                <!-- Cells generated via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Fim de Jogo -->
+    <div id="end-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 p-8 rounded-2xl max-w-md w-full text-center border border-slate-700 shadow-2xl">
+            <h2 id="end-title" class="text-3xl font-bold mb-4">Fim de Jogo!</h2>
+            <p id="end-message" class="text-slate-300 mb-6">Você conseguiu preencher a cartela.</p>
+            <button onclick="location.reload()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold py-3 px-8 rounded-xl w-full transition-colors mb-3">
+                Voltar ao Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Histórico -->
+    <div id="history-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 p-6 rounded-2xl max-w-2xl w-full border border-slate-700 shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Meu Histórico</h2>
+                <button onclick="closeHistory()" class="text-slate-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="history-content" class="overflow-y-auto pr-2 flex-1 space-y-4">
+                <!-- Histórico populado via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. DATA LAYER (Mantido)
+        const playersData = [
+            { name: "Douglas Costa", nationality: "Brasil", teams: ["Grêmio", "Bayern", "Shaktar", "Juventus", "Fluminense"], topscorer: [], champion: ["Serie A"], manager: ["Guardiola", "Felipão"], teammate: ["Cristiano Ronaldo"], ballonDor: false },
+            { name: "Michael Ballack", nationality: "Alemão", teams: ["Bayer", "Bayern", "Chelsea"], topscorer: [], champion: ["Premier"], manager: ["Mourinho"], teammate: ["Anelka", "Klose", "Robben"], ballonDor: false },
+            { name: "Robben", nationality: "Holandês", teams: ["PSV", "Chelsea", "Real Madrid", "Bayern"], topscorer: [], champion: ["Premier", "La Liga", "Champions"], manager: ["Guardiola", "Mourinho"], teammate: ["Ballack", "Anelka", "Ribery"], ballonDor: false },
+            { name: "Ribery", nationality: "Francês", teams: ["Marselha", "Bayern", "Fiorentina"], topscorer: [], champion: ["Champions"], manager: ["Guardiola"], teammate: ["Robben", "Klose"], ballonDor: false },
+            { name: "Klose", nationality: "Alemão", teams: ["Bayern", "Lazio"], topscorer: ["Copa do Mundo"], champion: ["Copa do Mundo"], manager: [], teammate: ["Ribery", "Robben"], ballonDor: false },
+            { name: "Roberto Carlos", nationality: "Brasil", teams: ["Atl Mineiro", "Palmeiras", "Real Madrid", "Internazionale", "Corinthians"], topscorer: [], champion: ["Copa do Mundo", "Brasileiro", "La Liga", "Champions", "Copa América"], manager: ["Luxemburgo"], teammate: [], ballonDor: false },
+            { name: "Ronaldo Fenômeno", nationality: "Brasil", teams: ["Cruzeiro", "PSV", "Barcelona", "Inter", "Real Madrid", "Milan", "Corinthians"], topscorer: ["Copa do Mundo", "La Liga"], champion: ["Copa do Mundo", "La Liga", "Copa América"], manager: [], teammate: ["Romário", "Roberto Carlos"], ballonDor: true },
+            { name: "Honda", nationality: "Japonês", teams: ["Milan", "Botafogo"], topscorer: [], champion: [], manager: [], teammate: [], ballonDor: false },
+            { name: "Immobile", nationality: "Itália", teams: ["Juventus", "Lazio", "Borussia"], topscorer: ["Serie A"], champion: ["Eurocopa"], manager: [], teammate: [], ballonDor: false },
+            { name: "Tiquinho", nationality: "Brasil", teams: ["Porto", "Botafogo"], topscorer: [], champion: [], manager: [], teammate: [], ballonDor: false },
+            { name: "Luis Suarez", nationality: "Uruguai", teams: ["Ajax", "Liverpool", "Barcelona", "Atl Madrid", "Gremio"], topscorer: ["La Liga", "Premier"], champion: ["Copa America", "Champions", "La Liga"], manager: [], teammate: ["Messi", "Neymar"], ballonDor: false },
+            { name: "Salah", nationality: "Egito", teams: ["Chelsea", "Roma", "Liverpool"], topscorer: ["Premier"], champion: ["Premier", "Champions"], manager: ["Klopp", "Mourinho"], teammate: ["Alisson", "Firmino"], ballonDor: false },
+            { name: "Julio Cesar", nationality: "Brasil", teams: ["Flamengo", "Inter", "Benfica", "QPR"], topscorer: [], champion: ["Champions", "Copa America", "Serie A"], manager: ["Mourinho", "Felipão"], teammate: ["Lúcio", "Maicon"], ballonDor: false },
+            { name: "Dida", nationality: "Brasil", teams: ["Cruzeiro", "Milan", "Corinthians", "Gremio", "Inter"], topscorer: [], champion: ["Serie A", "Champions", "Copa do Mundo", "Brasileiro", "Libertadores", "Copa América"], manager: ["Luxemburgo", "Felipão"], teammate: ["Ronaldo Fenômeno", "Kaká"], ballonDor: false },
+            { name: "Godin", nationality: "Uruguai", teams: ["Atl Madrid", "Internazionale", "Atl Mineiro"], topscorer: [], champion: ["Copa America", "La Liga", "Liga Europa"], manager: ["Simeone"], teammate: ["Suarez"], ballonDor: false },
+            { name: "Pepe Reina", nationality: "Espanha", teams: ["Barcelona", "Liverpool", "Napoli", "Bayern", "Milan", "Aston Villa", "Lazio"], topscorer: [], champion: ["Eurocopa", "Copa do Mundo"], manager: ["Benítez", "Guardiola"], teammate: ["Robben", "Ribery"], ballonDor: false },
+            { name: "Gago", nationality: "Argentina", teams: ["Boca", "Real Madrid", "Roma"], topscorer: [], champion: ["La Liga"], manager: [], teammate: ["Messi"], ballonDor: false },
+            { name: "De Rossi", nationality: "Itália", teams: ["Roma", "Boca"], topscorer: [], champion: ["Copa do Mundo"], manager: [], teammate: ["Totti"], ballonDor: false },
+            { name: "Lúcio", nationality: "Brasil", teams: ["Inter", "Bayer", "Bayern", "Juventus", "São Paulo", "Palmeiras"], topscorer: [], champion: ["Copa do Mundo", "Champions", "Serie A"], manager: ["Felipão", "Mourinho"], teammate: ["Ronaldo Fenômeno", "Julio Cesar"], ballonDor: false },
+            { name: "Juan", nationality: "Brasil", teams: ["Flamengo", "Bayer", "Roma", "Inter"], topscorer: [], champion: ["Brasileiro", "Copa América"], manager: ["Felipão"], teammate: ["Ronaldo Fenômeno", "Lúcio"], ballonDor: false },
+            { name: "Kaká", nationality: "Brasil", teams: ["São Paulo", "Milan", "Real Madrid"], topscorer: ["Champions"], champion: ["Serie A", "La Liga", "Champions", "Copa do Mundo"], manager: ["Felipão", "Mourinho"], teammate: ["Ronaldo Fenômeno", "Cristiano Ronaldo"], ballonDor: true },
+            { name: "Mac Allister", nationality: "Argentina", teams: ["Boca", "Liverpool", "Brighton"], topscorer: [], champion: ["Copa do Mundo"], manager: ["Klopp"], teammate: ["Messi", "Salah"], ballonDor: false },
+            { name: "Maxwell", nationality: "Brasil", teams: ["Cruzeiro", "Ajax", "Inter", "PSG", "Barcelona"], topscorer: [], champion: ["Serie A", "Champions", "La Liga"], manager: ["Guardiola", "Mourinho"], teammate: ["Messi", "Ibrahimovic"], ballonDor: false },
+            { name: "Bergwijn", nationality: "Holanda", teams: ["PSV", "Tottenham", "Ajax"], topscorer: [], champion: [], manager: ["Mourinho"], teammate: [], ballonDor: false },
+            { name: "Lugano", nationality: "Uruguai", teams: ["São Paulo", "PSG", "Fenerbahçe"], topscorer: [], champion: ["Libertadores", "Copa America"], manager: [], teammate: ["Suarez", "Ceni"], ballonDor: false },
+            { name: "Messi", nationality: "Argentina", teams: ["Barcelona", "PSG", "Inter Miami"], topscorer: ["La Liga", "Champions"], champion: ["Copa do Mundo", "Champions", "La Liga"], manager: ["Guardiola"], teammate: ["Suarez", "Neymar"], ballonDor: true },
+            { name: "Cristiano Ronaldo", nationality: "Portugal", teams: ["Sporting", "Man United", "Real Madrid", "Juventus", "Al Nassr"], topscorer: ["Champions", "Premier", "La Liga"], champion: ["Eurocopa", "Champions", "Premier", "La Liga"], manager: ["Mourinho", "Felipão"], teammate: ["Kaká", "Pepe"], ballonDor: true },
+            { name: "Neymar", nationality: "Brasil", teams: ["Santos", "Barcelona", "PSG", "Al Hilal"], topscorer: ["Champions", "Libertadores"], champion: ["Champions", "La Liga", "Libertadores"], manager: ["Felipão"], teammate: ["Messi", "Suarez", "Mbappé"], ballonDor: false },
+            { name: "Ibrahimovic", nationality: "Suécia", teams: ["Ajax", "Juventus", "Inter", "Barcelona", "Milan", "PSG", "Man United"], topscorer: ["Serie A"], champion: ["Serie A", "La Liga"], manager: ["Mourinho", "Guardiola"], teammate: ["Maxwell", "Messi"], ballonDor: false },
+            { name: "Alisson", nationality: "Brasil", teams: ["Internacional", "Roma", "Liverpool"], topscorer: [], champion: ["Champions", "Premier", "Copa America"], manager: ["Klopp"], teammate: ["Salah", "Neymar"], ballonDor: false }
+        ];
+
+        const criteriaPool = [
+            { type: "teams", value: "Real Madrid", label: "Jogou no Real Madrid" },
+            { type: "teams", value: "Barcelona", label: "Jogou no Barcelona" },
+            { type: "teams", value: "Bayern", label: "Jogou no Bayern" },
+            { type: "teams", value: "Liverpool", label: "Jogou no Liverpool" },
+            { type: "teams", value: "Milan", label: "Jogou no Milan" },
+            { type: "teams", value: "Inter", label: "Jogou na Internazionale" },
+            { type: "teams", value: "Juventus", label: "Jogou na Juventus" },
+            { type: "teams", value: "Boca", label: "Jogou no Boca Juniors" },
+            { type: "nationality", value: "Brasil", label: "Nacionalidade: Brasil" },
+            { type: "nationality", value: "Argentina", label: "Nacionalidade: Argentina" },
+            { type: "champion", value: "Copa do Mundo", label: "Campeão do Mundo" },
+            { type: "champion", value: "Champions", label: "Campeão da Champions" },
+            { type: "champion", value: "Premier", label: "Campeão da Premier League" },
+            { type: "champion", value: "La Liga", label: "Campeão da La Liga" },
+            { type: "topscorer", value: "La Liga", label: "Artilheiro da La Liga" },
+            { type: "topscorer", value: "Copa do Mundo", label: "Artilheiro da Copa do Mundo" },
+            { type: "manager", value: "Mourinho", label: "Treinado por Mourinho" },
+            { type: "manager", value: "Guardiola", label: "Treinado por Guardiola" },
+            { type: "manager", value: "Felipão", label: "Treinado por Felipão" },
+            { type: "manager", value: "Klopp", label: "Treinado por Klopp" },
+            { type: "teammate", value: "Messi", label: "Jogou com Messi" },
+            { type: "teammate", value: "Ronaldo Fenômeno", label: "Jogou com Ronaldo (Fenômeno)" },
+            { type: "ballonDor", value: true, label: "Já foi Melhor do Mundo" }
+        ];
+
+        // 2. STATE MANAGEMENT
+        let gameState = {
+            players: [],
+            currentPlayerIndex: 0,
+            board: [],
+            filledCells: 0,
+            isTimed: false,
+            timeLeft: 30,
+            timerInterval: null
+        };
+
+        const todayDateStr = new Date().toLocaleDateString('pt-BR');
+        document.getElementById('header-date').textContent = `Desafio de Hoje: ${todayDateStr}`;
+
+        // 3. UTILITY & RNG (Seeded Random para o Desafio Diário)
+        function cyrb128(str) {
+            let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+            for (let i = 0, k; i < str.length; i++) {
+                k = str.charCodeAt(i);
+                h1 = h2 ^ Math.imul(h1 ^ k, 597399067); h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+                h3 = h4 ^ Math.imul(h3 ^ k, 951274213); h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+            }
+            h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067); h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+            h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213); h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+            return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+        }
+
+        function sfc32(a, b, c, d) {
+            return function() {
+              a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; 
+              let t = (a + b) | 0;
+              a = b ^ b >>> 9; b = c + (c << 3) | 0; c = (c << 21 | c >>> 11);
+              d = d + 1 | 0; t = t + d | 0; c = c + t | 0;
+              return (t >>> 0) / 4294967296;
+            }
+        }
+
+        // Função de embaralhar que usa a data de hoje como semente
+        function seededShuffle(array) {
+            const seed = cyrb128(todayDateStr);
+            const rand = sfc32(seed[0], seed[1], seed[2], seed[3]);
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(rand() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        const normalizeStr = (str) => {
+            if(typeof str !== 'string') return '';
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        };
+
+        const showMessage = (text, isError = true) => {
+            const msgBox = document.getElementById('message-box');
+            msgBox.innerHTML = text; // Permite HTML interno (ex: <strong>)
+            msgBox.className = `mt-2 text-center text-sm font-bold min-h-[48px] transition-opacity duration-300 flex items-center justify-center ${isError ? 'text-red-400' : 'text-emerald-400'}`;
+            msgBox.style.opacity = '1';
+            setTimeout(() => { msgBox.style.opacity = '0'; }, 3000);
+        };
+
+        // 4. TIMER LOGIC
+        function startTimer() {
+            if (!gameState.isTimed) return;
+            
+            clearInterval(gameState.timerInterval);
+            gameState.timeLeft = 30;
+            updateTimerUI();
+
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeLeft--;
+                updateTimerUI();
+                
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const bar = document.getElementById('timer-bar');
+            const percentage = (gameState.timeLeft / 30) * 100;
+            bar.style.width = `${percentage}%`;
+            
+            if(gameState.timeLeft <= 10) {
+                bar.classList.replace('bg-emerald-400', 'bg-red-500');
+            } else {
+                bar.classList.replace('bg-red-500', 'bg-emerald-400');
+            }
+        }
+
+        function handleTimeout() {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            showMessage(`⏱️ Tempo esgotado! Você perdeu <strong>${currentPlayer.name}</strong>.`);
+            nextPlayer();
+            checkEndGame();
+        }
+
+        // 5. CORE LOGIC
+        function initBoard() {
+            const shuffledCriteria = seededShuffle([...criteriaPool]).slice(0, 9);
+            gameState.board = shuffledCriteria.map(criteria => ({
+                ...criteria,
+                filledBy: null
+            }));
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('bingo-board');
+            boardEl.innerHTML = '';
+            
+            gameState.board.forEach((cell, index) => {
+                const isFilled = cell.filledBy !== null;
+                const cellDiv = document.createElement('div');
+                
+                cellDiv.className = `bingo-cell relative rounded-xl border-2 flex flex-col items-center justify-center p-2 sm:p-4 text-center cursor-pointer overflow-hidden ${
+                    isFilled 
+                    ? 'border-emerald-500 bg-emerald-900/40 filled' 
+                    : 'border-slate-600 bg-slate-800 hover:border-slate-400'
+                }`;
+                
+                cellDiv.onclick = () => handleCellClick(index, cellDiv);
+
+                if (isFilled) {
+                    cellDiv.innerHTML = `
+                        <span class="text-[10px] sm:text-xs text-emerald-300/70 mb-1 uppercase font-semibold">${cell.label}</span>
+                        <span class="font-bold text-sm sm:text-lg text-white">${cell.filledBy.name}</span>
+                    `;
+                } else {
+                    cellDiv.innerHTML = `
+                        <span class="text-xs sm:text-sm text-slate-300 font-medium">${cell.label}</span>
+                    `;
+                }
+
+                boardEl.appendChild(cellDiv);
+            });
+        }
+
+        function updateUI() {
+            // Conta os jogadores restantes reais
+            let remaining = gameState.players.length - gameState.currentPlayerIndex;
+            if (remaining < 0) remaining = 0;
+            
+            document.getElementById('players-count').textContent = remaining;
+
+            if (remaining > 0) {
+                const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+                document.getElementById('current-player-name').textContent = currentPlayer.name;
+                startTimer();
+            } else {
+                document.getElementById('current-player-name').textContent = "Sem jogadores";
+                clearInterval(gameState.timerInterval);
+                checkEndGame();
+            }
+        }
+
+        function checkMatch(player, criteria) {
+            const val = criteria.value;
+            switch(criteria.type) {
+                case 'teams': case 'champion': case 'topscorer': case 'manager': case 'teammate':
+                    return player[criteria.type].some(item => normalizeStr(item).includes(normalizeStr(val)));
+                case 'nationality': return normalizeStr(player.nationality) === normalizeStr(val);
+                case 'ballonDor': return player.ballonDor === val;
+                default: return false;
+            }
+        }
+
+        function handleCellClick(cellIndex, cellElement) {
+            const cell = gameState.board[cellIndex];
+            
+            if (cell.filledBy !== null || gameState.currentPlayerIndex >= gameState.players.length) return;
+
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+            if (checkMatch(currentPlayer, cell)) {
+                // ACERTO
+                gameState.board[cellIndex].filledBy = currentPlayer;
+                gameState.filledCells++;
+                showMessage("Boa escolha!", false);
+                nextPlayer();
+                renderBoard();
+                checkEndGame();
+            } else {
+                // ERRO E PUNIÇÃO DUPLA
+                cellElement.classList.add('shake');
+                
+                // Verifica quem é o próximo que será perdido também
+                const nextPlayerObj = gameState.players[gameState.currentPlayerIndex + 1];
+                let errorMsg = `Incorreto! Você perdeu <strong>${currentPlayer.name}</strong>`;
+                if(nextPlayerObj) {
+                    errorMsg += ` e como punição perdeu também o próximo: <strong>${nextPlayerObj.name}</strong>!`;
+                } else {
+                    errorMsg += "!";
+                }
+                
+                showMessage(errorMsg);
+                setTimeout(() => cellElement.classList.remove('shake'), 500);
+                
+                // Pula DOIS jogadores (O atual e o próximo)
+                gameState.currentPlayerIndex += 2;
+                updateUI();
+                checkEndGame();
+            }
+        }
+
+        function skipPlayer() {
+            if (gameState.currentPlayerIndex < gameState.players.length) {
+                nextPlayer();
+                checkEndGame();
+            }
+        }
+
+        function nextPlayer() {
+            gameState.currentPlayerIndex++;
+            updateUI();
+        }
+
+        // 6. HISTÓRICO & LOCALSTORAGE
+        function saveGameToHistory() {
+            // Evita salvar repetidamente se o usuário já salvou hoje no mesmo modo
+            const modeName = gameState.isTimed ? "Diário (Extremo - 30s)" : "Diário (Clássico)";
+            const history = JSON.parse(localStorage.getItem('footBingoHistory') || '[]');
+            
+            // Cria um objeto leve da cartela para salvar (apenas nomes e labels)
+            const savedBoard = gameState.board.map(cell => ({
+                label: cell.label,
+                playerName: cell.filledBy ? cell.filledBy.name : null
+            }));
+
+            history.unshift({ // Adiciona no início
+                date: new Date().toLocaleString('pt-BR'),
+                mode: modeName,
+                score: gameState.filledCells,
+                board: savedBoard
+            });
+
+            // Mantém apenas os últimos 10 jogos no cache para não pesar
+            if(history.length > 10) history.pop();
+
+            localStorage.setItem('footBingoHistory', JSON.stringify(history));
+        }
+
+        function openHistory() {
+            const content = document.getElementById('history-content');
+            const history = JSON.parse(localStorage.getItem('footBingoHistory') || '[]');
+            
+            if(history.length === 0) {
+                content.innerHTML = '<p class="text-slate-400 text-center py-8">Você ainda não jogou nenhuma partida.</p>';
+            } else {
+                content.innerHTML = history.map(game => `
+                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                        <div class="flex justify-between items-center mb-3 border-b border-slate-600 pb-2">
+                            <div>
+                                <span class="text-xs text-slate-400">${game.date}</span>
+                                <h3 class="font-bold text-emerald-400">${game.mode}</h3>
+                            </div>
+                            <div class="text-2xl font-black ${game.score === 9 ? 'text-amber-400' : 'text-slate-300'}">
+                                ${game.score}/9
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1 sm:gap-2 text-[10px] sm:text-xs">
+                            ${game.board.map(c => `
+                                <div class="bg-slate-800 p-1 sm:p-2 rounded text-center border ${c.playerName ? 'border-emerald-500/50' : 'border-slate-600/50'}">
+                                    <span class="block text-slate-400 mb-1 line-clamp-2" title="${c.label}">${c.label}</span>
+                                    <strong class="text-white line-clamp-1">${c.playerName || '-'}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+
+        function closeHistory() {
+            document.getElementById('history-modal').classList.add('hidden');
+        }
+
+        function checkEndGame() {
+            if (gameState.filledCells === 9 || gameState.currentPlayerIndex >= gameState.players.length) {
+                clearInterval(gameState.timerInterval);
+                saveGameToHistory(); // Salva no cache
+
+                if (gameState.filledCells === 9) {
+                    showModal("Vitória Épica! 🏆", "Você completou a cartela do bingo de hoje com sucesso!");
+                } else {
+                    showModal("Fim de Jogo", `Acabaram os jogadores. Você conseguiu preencher ${gameState.filledCells} de 9 espaços na cartela de hoje.`);
+                }
+            }
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('end-title').textContent = title;
+            document.getElementById('end-title').className = gameState.filledCells === 9 ? "text-3xl font-bold mb-4 text-emerald-400" : "text-3xl font-bold mb-4 text-amber-400";
+            document.getElementById('end-message').textContent = msg;
+            document.getElementById('end-modal').classList.remove('hidden');
+        }
+
+        // 7. BOOTSTRAP
+        function initGame(isTimed) {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            if(isTimed) {
+                document.getElementById('timer-container').classList.remove('hidden');
+            }
+
+            gameState = {
+                players: seededShuffle([...playersData]), 
+                currentPlayerIndex: 0,
+                board: [],
+                filledCells: 0,
+                isTimed: isTimed,
+                timeLeft: 30,
+                timerInterval: null
+            };
+
+            initBoard();
+            updateUI();
+        }
+
+    </script>
+</body>
+</html>

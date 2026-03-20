@@ -26,6 +26,10 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
         .progress-bar-transition { transition: width 1s linear; }
+        
+        /* Esconde barra de rolagem no carrossel de datas */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-6 px-4 sm:px-8">
@@ -43,23 +47,32 @@
     </header>
 
     <!-- TELA INICIAL (MENU) -->
-    <div id="start-screen" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center mt-10">
-        <h2 class="text-2xl font-bold mb-2">Desafio Diário</h2>
-        <p class="text-slate-400 text-sm mb-6">A cartela de hoje é a mesma para todos. Escolha sua dificuldade:</p>
+    <div id="start-screen" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center mt-6">
+        
+        <!-- Carrossel de Datas (CORRIGIDO: adicionado p-2 e -mx-2 para evitar corte) -->
+        <div class="mb-6 text-left">
+            <h3 class="text-sm font-semibold text-slate-400 mb-1">Escolha o Desafio:</h3>
+            <div id="date-carousel" class="flex gap-2 overflow-x-auto hide-scrollbar p-2 -mx-2">
+                <!-- Preenchido via JS -->
+            </div>
+        </div>
+
+        <h2 id="selected-date-title" class="text-xl font-bold mb-2">Desafio de Hoje</h2>
+        <p class="text-slate-400 text-sm mb-6">A cartela deste dia é igual para todos. Escolha a dificuldade:</p>
         
         <div class="flex flex-col gap-4">
-            <button onclick="initGame(false)" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-xl transition-colors text-left border border-slate-600 hover:border-slate-400 flex flex-col">
+            <button onclick="initGame(false)" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-xl transition-colors text-left border border-slate-600 hover:border-slate-400 flex flex-col shadow-md hover:shadow-lg">
                 <span class="text-lg">Modo Clássico</span>
                 <span class="text-xs text-slate-400 font-normal mt-1">Sem limite de tempo por jogador.</span>
             </button>
-            <button onclick="initGame(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl transition-colors text-left border border-emerald-500 hover:border-emerald-400 flex flex-col">
+            <button onclick="initGame(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl transition-colors text-left border border-emerald-500 hover:border-emerald-400 flex flex-col shadow-md hover:shadow-emerald-900/50">
                 <span class="text-lg flex justify-between w-full">Modo Extremo <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
                 <span class="text-xs text-emerald-200 font-normal mt-1">30 segundos por jogador.</span>
             </button>
         </div>
         
         <div class="mt-6 text-xs text-amber-400 bg-amber-900/20 p-3 rounded-lg border border-amber-900/50">
-            <strong>Regra de Ouro:</strong> Se você tentar encaixar um jogador na característica errada, você perde ele <strong>E o próximo</strong> da fila!
+            <strong>Regra de Ouro:</strong> Se você errar a característica, você perde o jogador <strong>E o próximo</strong> da fila!
         </div>
     </div>
 
@@ -68,8 +81,6 @@
         
         <!-- Left Panel: Current Player & Controls -->
         <section class="lg:col-span-1 flex flex-col gap-4 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden">
-            
-            <!-- Timer Bar -->
             <div id="timer-container" class="absolute top-0 left-0 w-full h-1.5 bg-slate-700 hidden">
                 <div id="timer-bar" class="h-full bg-emerald-400 progress-bar-transition w-full"></div>
             </div>
@@ -90,25 +101,20 @@
                 </button>
             </div>
             
-            <div id="message-box" class="mt-2 text-center text-sm font-bold min-h-[48px] text-red-400 transition-opacity opacity-0 flex items-center justify-center">
-                <!-- Mensagens -->
-            </div>
+            <div id="message-box" class="mt-2 text-center text-sm font-bold min-h-[48px] text-red-400 transition-opacity opacity-0 flex items-center justify-center"></div>
         </section>
 
         <!-- Right Panel: Bingo Board -->
         <section class="lg:col-span-2">
-            <div id="bingo-board" class="grid grid-cols-3 gap-2 sm:gap-4 aspect-square">
-                <!-- Cells generated via JS -->
-            </div>
+            <div id="bingo-board" class="grid grid-cols-3 gap-2 sm:gap-4 aspect-square"></div>
         </section>
-
     </main>
 
     <!-- Modal Fim de Jogo -->
     <div id="end-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-slate-800 p-8 rounded-2xl max-w-md w-full text-center border border-slate-700 shadow-2xl">
             <h2 id="end-title" class="text-3xl font-bold mb-4">Fim de Jogo!</h2>
-            <p id="end-message" class="text-slate-300 mb-6">Você conseguiu preencher a cartela.</p>
+            <p id="end-message" class="text-slate-300 mb-6"></p>
             <button onclick="location.reload()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold py-3 px-8 rounded-xl w-full transition-colors mb-3">
                 Voltar ao Menu
             </button>
@@ -124,14 +130,12 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <div id="history-content" class="overflow-y-auto pr-2 flex-1 space-y-4">
-                <!-- Histórico populado via JS -->
-            </div>
+            <div id="history-content" class="overflow-y-auto pr-2 flex-1 space-y-4"></div>
         </div>
     </div>
 
     <script>
-        // 1. DATA LAYER (Mantido)
+        // 1. DATA LAYER
         const playersData = [
             { name: "Douglas Costa", nationality: "Brasil", teams: ["Grêmio", "Bayern", "Shaktar", "Juventus", "Fluminense"], topscorer: [], champion: ["Serie A"], manager: ["Guardiola", "Felipão"], teammate: ["Cristiano Ronaldo"], ballonDor: false },
             { name: "Michael Ballack", nationality: "Alemão", teams: ["Bayer", "Bayern", "Chelsea"], topscorer: [], champion: ["Premier"], manager: ["Mourinho"], teammate: ["Anelka", "Klose", "Robben"], ballonDor: false },
@@ -191,21 +195,80 @@
             { type: "ballonDor", value: true, label: "Já foi Melhor do Mundo" }
         ];
 
-        // 2. STATE MANAGEMENT
+        // 2. STATE MANAGEMENT & DATES
+        function getFormattedDate(date) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
+
+        const todayDateObj = new Date();
+        const todayDateStr = getFormattedDate(todayDateObj);
+        
+        let currentChallengeDate = todayDateStr; 
+        
         let gameState = {
-            players: [],
-            currentPlayerIndex: 0,
-            board: [],
-            filledCells: 0,
-            isTimed: false,
-            timeLeft: 30,
-            timerInterval: null
+            players: [], currentPlayerIndex: 0, board: [],
+            filledCells: 0, isTimed: false, timeLeft: 30, timerInterval: null
         };
 
-        const todayDateStr = new Date().toLocaleDateString('pt-BR');
-        document.getElementById('header-date').textContent = `Desafio de Hoje: ${todayDateStr}`;
+        // 3. CARROSSEL DE DATAS & HISTÓRICO
+        function checkPastCompletion(dateStr) {
+            const history = JSON.parse(localStorage.getItem('footBingoHistory') || '[]');
+            return history.some(g => g.challengeDate === dateStr);
+        }
 
-        // 3. UTILITY & RNG (Seeded Random para o Desafio Diário)
+        function renderDateCarousel() {
+            const carousel = document.getElementById('date-carousel');
+            carousel.innerHTML = '';
+            
+            for(let i=0; i<7; i++) {
+                const d = new Date(todayDateObj);
+                d.setDate(d.getDate() - i);
+                const dateStr = getFormattedDate(d);
+                
+                const isCompleted = checkPastCompletion(dateStr);
+                const isSelected = dateStr === currentChallengeDate;
+                
+                const shortDate = dateStr.substring(0, 5);
+                const dayLabel = i === 0 ? "Hoje" : shortDate;
+
+                const btn = document.createElement('button');
+                btn.onclick = () => selectDate(dateStr);
+                
+                let baseClasses = "min-w-[70px] flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all flex-shrink-0 ";
+                
+                if (isSelected) {
+                    baseClasses += "border-emerald-500 bg-emerald-900/30 text-emerald-400 font-bold scale-105 shadow-md";
+                } else if (isCompleted) {
+                    baseClasses += "border-slate-600 bg-slate-800/80 text-slate-400 hover:border-emerald-500/50 opacity-70";
+                } else {
+                    baseClasses += "border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-400";
+                }
+                
+                btn.className = baseClasses;
+                
+                btn.innerHTML = `
+                    <span class="text-xs uppercase tracking-wider mb-1">${dayLabel}</span>
+                    <span class="text-lg">
+                        ${isCompleted ? '✅' : '📅'}
+                    </span>
+                `;
+                
+                carousel.appendChild(btn);
+            }
+            
+            document.getElementById('header-date').textContent = `Desafio: ${currentChallengeDate}`;
+            document.getElementById('selected-date-title').textContent = currentChallengeDate === todayDateStr ? "Desafio de Hoje" : `Desafio do dia ${currentChallengeDate}`;
+        }
+
+        function selectDate(dateStr) {
+            currentChallengeDate = dateStr;
+            renderDateCarousel();
+        }
+
+        // 4. RNG
         function cyrb128(str) {
             let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
             for (let i = 0, k; i < str.length; i++) {
@@ -228,9 +291,8 @@
             }
         }
 
-        // Função de embaralhar que usa a data de hoje como semente
-        function seededShuffle(array) {
-            const seed = cyrb128(todayDateStr);
+        function seededShuffle(array, seedString) {
+            const seed = cyrb128(seedString);
             const rand = sfc32(seed[0], seed[1], seed[2], seed[3]);
             let currentIndex = array.length, randomIndex;
             while (currentIndex !== 0) {
@@ -241,6 +303,7 @@
             return array;
         }
 
+        // 5. CORE LOGIC
         const normalizeStr = (str) => {
             if(typeof str !== 'string') return '';
             return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -248,16 +311,14 @@
 
         const showMessage = (text, isError = true) => {
             const msgBox = document.getElementById('message-box');
-            msgBox.innerHTML = text; // Permite HTML interno (ex: <strong>)
+            msgBox.innerHTML = text;
             msgBox.className = `mt-2 text-center text-sm font-bold min-h-[48px] transition-opacity duration-300 flex items-center justify-center ${isError ? 'text-red-400' : 'text-emerald-400'}`;
             msgBox.style.opacity = '1';
             setTimeout(() => { msgBox.style.opacity = '0'; }, 3000);
         };
 
-        // 4. TIMER LOGIC
         function startTimer() {
             if (!gameState.isTimed) return;
-            
             clearInterval(gameState.timerInterval);
             gameState.timeLeft = 30;
             updateTimerUI();
@@ -265,7 +326,6 @@
             gameState.timerInterval = setInterval(() => {
                 gameState.timeLeft--;
                 updateTimerUI();
-                
                 if (gameState.timeLeft <= 0) {
                     clearInterval(gameState.timerInterval);
                     handleTimeout();
@@ -277,12 +337,7 @@
             const bar = document.getElementById('timer-bar');
             const percentage = (gameState.timeLeft / 30) * 100;
             bar.style.width = `${percentage}%`;
-            
-            if(gameState.timeLeft <= 10) {
-                bar.classList.replace('bg-emerald-400', 'bg-red-500');
-            } else {
-                bar.classList.replace('bg-red-500', 'bg-emerald-400');
-            }
+            bar.className = `h-full progress-bar-transition w-full ${gameState.timeLeft <= 10 ? 'bg-red-500' : 'bg-emerald-400'}`;
         }
 
         function handleTimeout() {
@@ -292,13 +347,9 @@
             checkEndGame();
         }
 
-        // 5. CORE LOGIC
         function initBoard() {
-            const shuffledCriteria = seededShuffle([...criteriaPool]).slice(0, 9);
-            gameState.board = shuffledCriteria.map(criteria => ({
-                ...criteria,
-                filledBy: null
-            }));
+            const shuffledCriteria = seededShuffle([...criteriaPool], currentChallengeDate + "-board").slice(0, 9);
+            gameState.board = shuffledCriteria.map(criteria => ({ ...criteria, filledBy: null }));
             renderBoard();
         }
 
@@ -309,32 +360,19 @@
             gameState.board.forEach((cell, index) => {
                 const isFilled = cell.filledBy !== null;
                 const cellDiv = document.createElement('div');
-                
-                cellDiv.className = `bingo-cell relative rounded-xl border-2 flex flex-col items-center justify-center p-2 sm:p-4 text-center cursor-pointer overflow-hidden ${
-                    isFilled 
-                    ? 'border-emerald-500 bg-emerald-900/40 filled' 
-                    : 'border-slate-600 bg-slate-800 hover:border-slate-400'
-                }`;
-                
+                cellDiv.className = `bingo-cell relative rounded-xl border-2 flex flex-col items-center justify-center p-2 sm:p-4 text-center cursor-pointer overflow-hidden ${isFilled ? 'border-emerald-500 bg-emerald-900/40 filled' : 'border-slate-600 bg-slate-800 hover:border-slate-400'}`;
                 cellDiv.onclick = () => handleCellClick(index, cellDiv);
 
                 if (isFilled) {
-                    cellDiv.innerHTML = `
-                        <span class="text-[10px] sm:text-xs text-emerald-300/70 mb-1 uppercase font-semibold">${cell.label}</span>
-                        <span class="font-bold text-sm sm:text-lg text-white">${cell.filledBy.name}</span>
-                    `;
+                    cellDiv.innerHTML = `<span class="text-[10px] sm:text-xs text-emerald-300/70 mb-1 uppercase font-semibold">${cell.label}</span><span class="font-bold text-sm sm:text-lg text-white">${cell.filledBy.name}</span>`;
                 } else {
-                    cellDiv.innerHTML = `
-                        <span class="text-xs sm:text-sm text-slate-300 font-medium">${cell.label}</span>
-                    `;
+                    cellDiv.innerHTML = `<span class="text-xs sm:text-sm text-slate-300 font-medium">${cell.label}</span>`;
                 }
-
                 boardEl.appendChild(cellDiv);
             });
         }
 
         function updateUI() {
-            // Conta os jogadores restantes reais
             let remaining = gameState.players.length - gameState.currentPlayerIndex;
             if (remaining < 0) remaining = 0;
             
@@ -364,13 +402,11 @@
 
         function handleCellClick(cellIndex, cellElement) {
             const cell = gameState.board[cellIndex];
-            
             if (cell.filledBy !== null || gameState.currentPlayerIndex >= gameState.players.length) return;
 
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
 
             if (checkMatch(currentPlayer, cell)) {
-                // ACERTO
                 gameState.board[cellIndex].filledBy = currentPlayer;
                 gameState.filledCells++;
                 showMessage("Boa escolha!", false);
@@ -378,22 +414,15 @@
                 renderBoard();
                 checkEndGame();
             } else {
-                // ERRO E PUNIÇÃO DUPLA
                 cellElement.classList.add('shake');
-                
-                // Verifica quem é o próximo que será perdido também
                 const nextPlayerObj = gameState.players[gameState.currentPlayerIndex + 1];
                 let errorMsg = `Incorreto! Você perdeu <strong>${currentPlayer.name}</strong>`;
-                if(nextPlayerObj) {
-                    errorMsg += ` e como punição perdeu também o próximo: <strong>${nextPlayerObj.name}</strong>!`;
-                } else {
-                    errorMsg += "!";
-                }
+                if(nextPlayerObj) errorMsg += ` e como punição perdeu o próximo: <strong>${nextPlayerObj.name}</strong>!`;
+                else errorMsg += "!";
                 
                 showMessage(errorMsg);
                 setTimeout(() => cellElement.classList.remove('shake'), 500);
                 
-                // Pula DOIS jogadores (O atual e o próximo)
                 gameState.currentPlayerIndex += 2;
                 updateUI();
                 checkEndGame();
@@ -414,26 +443,25 @@
 
         // 6. HISTÓRICO & LOCALSTORAGE
         function saveGameToHistory() {
-            // Evita salvar repetidamente se o usuário já salvou hoje no mesmo modo
-            const modeName = gameState.isTimed ? "Diário (Extremo - 30s)" : "Diário (Clássico)";
-            const history = JSON.parse(localStorage.getItem('footBingoHistory') || '[]');
+            const modeName = gameState.isTimed ? "Extremo (30s)" : "Clássico";
+            let history = JSON.parse(localStorage.getItem('footBingoHistory') || '[]');
             
-            // Cria um objeto leve da cartela para salvar (apenas nomes e labels)
             const savedBoard = gameState.board.map(cell => ({
                 label: cell.label,
                 playerName: cell.filledBy ? cell.filledBy.name : null
             }));
 
-            history.unshift({ // Adiciona no início
-                date: new Date().toLocaleString('pt-BR'),
+            history = history.filter(g => g.challengeDate !== currentChallengeDate);
+
+            history.unshift({
+                playedAt: new Date().toLocaleString('pt-BR'),
+                challengeDate: currentChallengeDate,
                 mode: modeName,
                 score: gameState.filledCells,
                 board: savedBoard
             });
 
-            // Mantém apenas os últimos 10 jogos no cache para não pesar
-            if(history.length > 10) history.pop();
-
+            if(history.length > 20) history.pop();
             localStorage.setItem('footBingoHistory', JSON.stringify(history));
         }
 
@@ -448,7 +476,7 @@
                     <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
                         <div class="flex justify-between items-center mb-3 border-b border-slate-600 pb-2">
                             <div>
-                                <span class="text-xs text-slate-400">${game.date}</span>
+                                <span class="text-xs text-slate-400">Desafio: ${game.challengeDate}</span>
                                 <h3 class="font-bold text-emerald-400">${game.mode}</h3>
                             </div>
                             <div class="text-2xl font-black ${game.score === 9 ? 'text-amber-400' : 'text-slate-300'}">
@@ -477,12 +505,12 @@
         function checkEndGame() {
             if (gameState.filledCells === 9 || gameState.currentPlayerIndex >= gameState.players.length) {
                 clearInterval(gameState.timerInterval);
-                saveGameToHistory(); // Salva no cache
+                saveGameToHistory(); 
 
                 if (gameState.filledCells === 9) {
-                    showModal("Vitória Épica! 🏆", "Você completou a cartela do bingo de hoje com sucesso!");
+                    showModal("Vitória Épica! 🏆", `Você completou a cartela do dia ${currentChallengeDate} com sucesso!`);
                 } else {
-                    showModal("Fim de Jogo", `Acabaram os jogadores. Você conseguiu preencher ${gameState.filledCells} de 9 espaços na cartela de hoje.`);
+                    showModal("Fim de Jogo", `Acabaram os jogadores. Você preencheu ${gameState.filledCells} de 9 espaços no desafio do dia ${currentChallengeDate}.`);
                 }
             }
         }
@@ -499,12 +527,10 @@
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             
-            if(isTimed) {
-                document.getElementById('timer-container').classList.remove('hidden');
-            }
+            if(isTimed) document.getElementById('timer-container').classList.remove('hidden');
 
             gameState = {
-                players: seededShuffle([...playersData]), 
+                players: seededShuffle([...playersData], currentChallengeDate + "-players"), 
                 currentPlayerIndex: 0,
                 board: [],
                 filledCells: 0,
@@ -516,6 +542,8 @@
             initBoard();
             updateUI();
         }
+
+        window.onload = renderDateCarousel;
 
     </script>
 </body>

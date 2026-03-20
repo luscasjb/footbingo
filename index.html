@@ -48,7 +48,6 @@
     <!-- TELA INICIAL (MENU) -->
     <div id="start-screen" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center mt-6">
         
-        <!-- Carrossel de Datas -->
         <div class="mb-6 text-left">
             <h3 class="text-sm font-semibold text-slate-400 mb-1">Escolha o Desafio:</h3>
             <div id="date-carousel" class="flex gap-2 overflow-x-auto hide-scrollbar p-2 -mx-2">
@@ -71,7 +70,7 @@
         </div>
         
         <div class="mt-6 text-xs text-amber-400 bg-amber-900/20 p-3 rounded-lg border border-amber-900/50">
-            <strong>Regra de Ouro:</strong> Se você errar a característica, você perde o jogador <strong>E o próximo</strong> da fila!
+            <strong>Regra de Ouro:</strong> Se você errar a característica de um jogador, você perde ele <strong>E o próximo</strong> da fila. Pense bem!
         </div>
     </div>
 
@@ -290,12 +289,10 @@
                 }
                 
                 btn.className = baseClasses;
-                
                 btn.innerHTML = `
                     <span class="text-xs uppercase tracking-wider mb-1">${dayLabel}</span>
                     <span class="text-lg">${isCompleted ? '✅' : '📅'}</span>
                 `;
-                
                 carousel.appendChild(btn);
             }
             
@@ -357,74 +354,61 @@
             setTimeout(() => { msgBox.style.opacity = '0'; }, 3000);
         };
 
-        function startTimer() {
-            if (!gameState.isTimed) return;
-            clearInterval(gameState.timerInterval);
-            gameState.timeLeft = 30;
-            updateTimerUI();
-
-            gameState.timerInterval = setInterval(() => {
-                gameState.timeLeft--;
-                updateTimerUI();
-                if (gameState.timeLeft <= 0) {
-                    clearInterval(gameState.timerInterval);
-                    handleTimeout();
-                }
-            }, 1000);
+        function checkMatch(player, criteria) {
+            if(!player || !criteria) return false;
+            const val = criteria.value;
+            switch(criteria.type) {
+                case 'teams': case 'champion': case 'topscorer': case 'manager': case 'teammate':
+                    if(!player[criteria.type]) return false;
+                    return player[criteria.type].some(item => normalizeStr(item).includes(normalizeStr(val)));
+                case 'nationality': return normalizeStr(player.nationality) === normalizeStr(val);
+                case 'ballonDor': return player.ballonDor === val;
+                default: return false;
+            }
         }
 
-        function updateTimerUI() {
-            const bar = document.getElementById('timer-bar');
-            const percentage = (gameState.timeLeft / 30) * 100;
-            bar.style.width = `${percentage}%`;
-            bar.className = `h-full progress-bar-transition w-full ${gameState.timeLeft <= 10 ? 'bg-red-500' : 'bg-emerald-400'}`;
-        }
-
-        function handleTimeout() {
-            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-            showMessage(`⏱️ Tempo esgotado! Você perdeu <strong>${currentPlayer.name}</strong>.`);
-            nextPlayer();
-            checkEndGame();
-        }
-
-        // LÓGICA DE LIMITES NA CARTELA
-        function initBoard() {
-            const MAX_LIMITS = {
-                teams: 4,
-                nationality: 2,
-                champion: 2,
-                topscorer: 2,
-                manager: 2,
-                teammate: 2,
-                ballonDor: 9
-            };
-
-            // Contadores de quantas vezes cada tipo já apareceu
-            const typeCounts = {
-                teams: 0, nationality: 0, champion: 0, topscorer: 0, manager: 0, teammate: 0, ballonDor: 0
-            };
-
+        function generateBoard() {
+            const MAX_LIMITS = { teams: 4, nationality: 2, champion: 2, topscorer: 2, manager: 2, teammate: 9, ballonDor: 9 };
+            const typeCounts = { teams: 0, nationality: 0, champion: 0, topscorer: 0, manager: 0, teammate: 0, ballonDor: 0 };
             const fullShuffledPool = seededShuffle([...criteriaPool], currentChallengeDate + "-board");
-            
             const selectedCriteria = [];
 
-            // Passa item a item verificando se o limite já estourou
             for (const criteria of fullShuffledPool) {
-                if (selectedCriteria.length >= 9) break; // Para quando tiver 9
-
+                if (selectedCriteria.length >= 9) break;
                 const type = criteria.type;
-                const currentCount = typeCounts[type] || 0;
-                const limit = MAX_LIMITS[type] || 9;
-
-                // Se ainda couber na categoria, adiciona na cartela
-                if (currentCount < limit) {
+                if ((typeCounts[type] || 0) < (MAX_LIMITS[type] || 9)) {
                     selectedCriteria.push(criteria);
-                    typeCounts[type] = currentCount + 1;
+                    typeCounts[type] = (typeCounts[type] || 0) + 1;
+                }
+            }
+            return selectedCriteria.map(criteria => ({ ...criteria, filledBy: null }));
+        }
+
+        function generatePlayerPool(board) {
+            const allPlayers = seededShuffle([...playersData], currentChallengeDate + "-players-base");
+            const guaranteedPlayers = new Set();
+
+            board.forEach(cell => {
+                let matchesFound = 0;
+                for (const p of allPlayers) {
+                    if (checkMatch(p, cell)) {
+                        guaranteedPlayers.add(p);
+                        matchesFound++;
+                        if (matchesFound >= 3) break;
+                    }
+                }
+            });
+
+            const finalPool = Array.from(guaranteedPlayers);
+
+            for (const p of allPlayers) {
+                if (finalPool.length >= 30) break;
+                if (!guaranteedPlayers.has(p)) {
+                    finalPool.push(p);
                 }
             }
 
-            gameState.board = selectedCriteria.map(criteria => ({ ...criteria, filledBy: null }));
-            renderBoard();
+            return seededShuffle(finalPool, currentChallengeDate + "-players-final");
         }
 
         function renderBoard() {
@@ -463,17 +447,6 @@
             }
         }
 
-        function checkMatch(player, criteria) {
-            const val = criteria.value;
-            switch(criteria.type) {
-                case 'teams': case 'champion': case 'topscorer': case 'manager': case 'teammate':
-                    return player[criteria.type].some(item => normalizeStr(item).includes(normalizeStr(val)));
-                case 'nationality': return normalizeStr(player.nationality) === normalizeStr(val);
-                case 'ballonDor': return player.ballonDor === val;
-                default: return false;
-            }
-        }
-
         function handleCellClick(cellIndex, cellElement) {
             const cell = gameState.board[cellIndex];
             if (cell.filledBy !== null || gameState.currentPlayerIndex >= gameState.players.length) return;
@@ -489,18 +462,45 @@
                 checkEndGame();
             } else {
                 cellElement.classList.add('shake');
-                const nextPlayerObj = gameState.players[gameState.currentPlayerIndex + 1];
-                let errorMsg = `Incorreto! Você perdeu <strong>${currentPlayer.name}</strong>`;
-                if(nextPlayerObj) errorMsg += ` e como punição perdeu o próximo: <strong>${nextPlayerObj.name}</strong>!`;
-                else errorMsg += "!";
                 
-                showMessage(errorMsg);
+                showMessage(`Incorreto! Você perdeu <strong>${currentPlayer.name}</strong>.`);
+                
                 setTimeout(() => cellElement.classList.remove('shake'), 500);
                 
                 gameState.currentPlayerIndex += 2;
                 updateUI();
                 checkEndGame();
             }
+        }
+
+        function startTimer() {
+            if (!gameState.isTimed) return;
+            clearInterval(gameState.timerInterval);
+            gameState.timeLeft = 30;
+            updateTimerUI();
+
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeLeft--;
+                updateTimerUI();
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const bar = document.getElementById('timer-bar');
+            const percentage = (gameState.timeLeft / 30) * 100;
+            bar.style.width = `${percentage}%`;
+            bar.className = `h-full progress-bar-transition w-full ${gameState.timeLeft <= 10 ? 'bg-red-500' : 'bg-emerald-400'}`;
+        }
+
+        function handleTimeout() {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            showMessage(`⏱️ Tempo esgotado! Você perdeu <strong>${currentPlayer.name}</strong>.`);
+            nextPlayer();
+            checkEndGame();
         }
 
         function skipPlayer() {
@@ -596,24 +596,26 @@
             document.getElementById('end-modal').classList.remove('hidden');
         }
 
-        // 7. BOOTSTRAP
+        // 7. BOOTSTRAP INICIAL DO JOGO
         function initGame(isTimed) {
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
-            
             if(isTimed) document.getElementById('timer-container').classList.remove('hidden');
 
+            const generatedBoard = generateBoard();
+            const thirtyPlayers = generatePlayerPool(generatedBoard);
+
             gameState = {
-                players: seededShuffle([...playersData], currentChallengeDate + "-players"), 
+                players: thirtyPlayers, 
                 currentPlayerIndex: 0,
-                board: [],
+                board: generatedBoard,
                 filledCells: 0,
                 isTimed: isTimed,
                 timeLeft: 30,
                 timerInterval: null
             };
 
-            initBoard();
+            renderBoard();
             updateUI();
         }
 
